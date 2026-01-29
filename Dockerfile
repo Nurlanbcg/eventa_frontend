@@ -21,10 +21,6 @@ COPY . .
 # Set environment variable for build
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Accept backend API URL as build argument (set this in Railway)
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
 # Build the application
 RUN npm run build
 
