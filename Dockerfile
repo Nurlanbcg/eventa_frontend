@@ -33,6 +33,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Set environment to production
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
