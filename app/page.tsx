@@ -167,8 +167,11 @@ export default function LoginPage() {
     }
   }
 
-  // Show loading while checking auth or setup status
-  if (authLoading || isSystemSetup === null) {
+  // Show loading while:
+  // 1. Auth state is being checked (authLoading)
+  // 2. Setup status is being checked (isSystemSetup === null)
+  // 3. User is authenticated and waiting for redirect (prevents flash of login page)
+  if (authLoading || isSystemSetup === null || (isAuthenticated && user)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <LoadingSpinner size={300} />

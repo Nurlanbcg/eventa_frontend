@@ -192,7 +192,11 @@ export default function EventDetailPage() {
     if (!selectedGuest || !event) return
 
     try {
-      const apiUrl = `http://${window.location.hostname}:5000/api`;
+      // Get token from both storage types
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+
+      // Use NEXT_PUBLIC_API_URL if available, otherwise construct from hostname
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || `http://${window.location.hostname}:5000/api`;
 
       // If guest already has an assigned driver, delete the existing transfer first
       if (selectedGuest.assignedDriverId) {
@@ -200,7 +204,7 @@ export default function EventDetailPage() {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+            'Authorization': `Bearer ${token}`
           }
         });
         const deleteResult = await deleteResponse.json();
@@ -215,7 +219,7 @@ export default function EventDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           guestId: selectedGuest._id || selectedGuest.id,
@@ -248,13 +252,15 @@ export default function EventDetailPage() {
   const handleUnassignDriver = async () => {
     if (!selectedGuest || !event) return
 
+
     try {
-      const apiUrl = `http://${window.location.hostname}:5000/api`;
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || `http://${window.location.hostname}:5000/api`;
       const response = await fetch(`${apiUrl}/transfers/guest/${selectedGuest._id || selectedGuest.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          'Authorization': `Bearer ${token}`
         }
       });
       const result = await response.json();
@@ -868,7 +874,16 @@ export default function EventDetailPage() {
                     key={driver._id || driver.id}
                     type="button"
                     className="w-full p-4 rounded-lg border border-border hover:bg-muted/50 active:bg-muted transition-colors text-left cursor-pointer select-none touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent', WebkitAppearance: 'none' }}
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      WebkitAppearance: 'none',
+                      WebkitUserSelect: 'none',
+                      userSelect: 'none'
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      handleAssignDriver(driver)
+                    }}
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
