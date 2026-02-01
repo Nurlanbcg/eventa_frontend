@@ -182,7 +182,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-background p-4 relative">
       {/* Language Selector - Top Right */}
-      <div className="absolute top-6 right-6 flex items-center gap-2">
+      <div className="absolute top-2 right-4 flex items-center gap-2 z-50">
         <LanguageSwitcher />
         <ModeToggle />
       </div>
