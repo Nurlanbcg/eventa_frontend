@@ -24,6 +24,7 @@ export default function LoginPage() {
   // Login State
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(true)
   // Role is now auto-detected
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -56,7 +57,7 @@ export default function LoginPage() {
     const checkStatus = async () => {
       try {
         const response = await api.auth.checkSetupStatus()
-        setIsSystemSetup(response.isSetup)
+        setIsSystemSetup(response.data.isSetupComplete)
       } catch (error) {
         console.error("Failed to check system status", error)
         // Fallback to assuming setup is done to prevent getting stuck in loading
@@ -72,8 +73,8 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Role is auto-detected by backend
-      const success = await login(email, password)
+      // Role is auto-detected by backend, pass rememberMe
+      const success = await login(email, password, undefined, rememberMe)
       if (success) {
         // Fetch user info to know where to redirect
         const userRes = await api.auth.me()
@@ -112,7 +113,6 @@ export default function LoginPage() {
       const response = await api.auth.setup({
         name: setupData.name,
         email: setupData.email,
-        phone: setupData.phone,
         password: setupData.password
       })
 
@@ -128,7 +128,7 @@ export default function LoginPage() {
           router.replace("/admin")
         }
       } else {
-        setError(response.message || "Setup failed")
+        setError("Setup failed")
       }
     } catch (err: any) {
       setError(err.message || "Setup failed")
@@ -237,6 +237,19 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {/* Remember Me Checkbox */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-accent text-accent focus:ring-accent accent-accent cursor-pointer"
+                  />
+                  <Label htmlFor="rememberMe" className="text-sm cursor-pointer">
+                    {t("login.rememberMe")}
+                  </Label>
+                </div>
 
                 {error && (
                   <p className="text-sm text-destructive text-center">{error}</p>

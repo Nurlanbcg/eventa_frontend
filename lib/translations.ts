@@ -15,6 +15,7 @@ export const translations = {
     "login.driverPortal": "Sürücü Portal Girişi",
     "login.invalidCredentials": "Yanlış məlumatlar. Zəhmət olmasa yenidən cəhd edin.",
     "login.welcome": "Xoş Gəlmisiniz",
+    "login.rememberMe": "Məni yadda saxla",
 
 
     // Setup Page
@@ -682,6 +683,7 @@ export const translations = {
     "login.driverPortal": "Driver Portal Login",
     "login.invalidCredentials": "Invalid credentials. Please try again.",
     "login.welcome": "Welcome Back",
+    "login.rememberMe": "Remember me",
 
 
     // Setup Page
@@ -1348,6 +1350,7 @@ export const translations = {
     "login.driverPortal": "Вход для водителей",
     "login.invalidCredentials": "Неверные учетные данные. Пожалуйста, попробуйте снова.",
     "login.welcome": "Добро пожаловать",
+    "login.rememberMe": "Запомнить меня",
     "login.selectRole": "Выберите Роль",
 
     // Setup Page
@@ -2026,6 +2029,7 @@ export const translations = {
     "login.driverPortal": "Sürücü Portalı Girişi",
     "login.invalidCredentials": "Geçersiz bilgiler. Lütfen tekrar deneyin.",
     "login.welcome": "Hoş Geldiniz",
+    "login.rememberMe": "Beni hatırla",
 
 
     // Setup Page

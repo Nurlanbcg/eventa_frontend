@@ -8,9 +8,27 @@ import { api } from "./api"
 // Token expiration time in milliseconds (7 days)
 const TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000
 
+// Helper to get token from either storage
+const getToken = () => {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem("token") || sessionStorage.getItem("token")
+}
+
+const getTokenExpiry = () => {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem("tokenExpiry") || sessionStorage.getItem("tokenExpiry")
+}
+
+const clearTokens = () => {
+  localStorage.removeItem("token")
+  localStorage.removeItem("tokenExpiry")
+  sessionStorage.removeItem("token")
+  sessionStorage.removeItem("tokenExpiry")
+}
+
 interface AuthContextType {
   user: User | null
-  login: (email: string, password: string, role?: UserRole) => Promise<boolean>
+  login: (email: string, password: string, role?: UserRole, rememberMe?: boolean) => Promise<boolean>
   logout: () => void
   isAuthenticated: boolean
   isLoading: boolean
@@ -25,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check if token has expired
   const isTokenExpired = useCallback(() => {
-    const expiryTime = localStorage.getItem("tokenExpiry")
+    const expiryTime = getTokenExpiry()
     // If no expiry time is stored, don't assume expired - let the server validate
     if (!expiryTime) return false
     return Date.now() > parseInt(expiryTime, 10)
@@ -34,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load user from token on mount
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem("token")
+      const token = getToken()
 
       // Check if token exists
       if (token) {
@@ -42,8 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isTokenExpired()) {
           // Token has expired, clear it
           console.log("Session expired")
-          localStorage.removeItem("token")
-          localStorage.removeItem("tokenExpiry")
+          clearTokens()
           setUser(null)
           setIsLoading(false)
           return
@@ -54,20 +71,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const response = await api.auth.me()
           if (response.success) {
             setUser(response.data.user)
-            // If tokenExpiry was missing, set it now for future checks
-            if (!localStorage.getItem("tokenExpiry")) {
+            // If tokenExpiry was missing (localStorage), set it now for future checks
+            if (!getTokenExpiry() && localStorage.getItem("token")) {
               localStorage.setItem("tokenExpiry", String(Date.now() + TOKEN_EXPIRY_MS))
             }
           } else {
             // Token invalid on server
-            localStorage.removeItem("token")
-            localStorage.removeItem("tokenExpiry")
+            clearTokens()
             setUser(null)
           }
         } catch (error) {
           console.error("Auth check failed:", error)
-          localStorage.removeItem("token")
-          localStorage.removeItem("tokenExpiry")
+          clearTokens()
           setUser(null)
         }
       }
@@ -77,13 +92,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth()
   }, [isTokenExpired])
 
-  const login = useCallback(async (email: string, password: string, role?: UserRole): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string, role?: UserRole, rememberMe: boolean = true): Promise<boolean> => {
     try {
       const response = await api.auth.login({ email, password, role })
       if (response.success) {
-        localStorage.setItem("token", response.data.token)
-        // Store token expiration time (current time + 24 hours)
-        localStorage.setItem("tokenExpiry", String(Date.now() + TOKEN_EXPIRY_MS))
+        // Clear both storages first
+        clearTokens()
+
+        if (rememberMe) {
+          // Use localStorage for persistent session (7 days)
+          localStorage.setItem("token", response.data.token)
+          localStorage.setItem("tokenExpiry", String(Date.now() + TOKEN_EXPIRY_MS))
+        } else {
+          // Use sessionStorage for session-only (cleared when browser closes)
+          sessionStorage.setItem("token", response.data.token)
+          // No expiry needed for session storage - it's cleared on browser close
+        }
         setUser(response.data.user)
         return true
       }
@@ -96,8 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setUser(null)
-    localStorage.removeItem("token")
-    localStorage.removeItem("tokenExpiry")
+    clearTokens()
     router.push("/")
   }, [router])
 
@@ -115,3 +138,4 @@ export function useAuth() {
   }
   return context
 }
+

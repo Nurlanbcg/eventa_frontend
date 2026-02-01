@@ -864,20 +864,18 @@ export default function EventDetailPage() {
                 if (isCurrentDriver) return null
 
                 return (
-                  <div
+                  <button
                     key={driver._id || driver.id}
-                    role="button"
-                    tabIndex={0}
-                    className="w-full p-4 rounded-lg border border-border hover:bg-muted/50 active:bg-muted transition-colors text-left cursor-pointer select-none"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                    onClick={() => handleAssignDriver(driver)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        handleAssignDriver(driver)
-                      }
+                    type="button"
+                    className="w-full p-4 rounded-lg border border-border hover:bg-muted/50 active:bg-muted transition-colors text-left cursor-pointer select-none touch-manipulation"
+                    style={{ WebkitTapHighlightColor: 'transparent', WebkitAppearance: 'none' }}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleAssignDriver(driver)
                     }}
                   >
-                    <div className="flex items-center justify-between pointer-events-none">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
                           <Car className="h-5 w-5 text-accent" />
@@ -891,7 +889,7 @@ export default function EventDetailPage() {
                       </div>
                       <StatusBadge status={driver.status} />
                     </div>
-                  </div>
+                  </button>
                 )
               })
             ) : (
