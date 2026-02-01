@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { LogOut, Globe, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 import { useLanguage } from "@/lib/language-context"
 
@@ -50,7 +51,7 @@ export default function DriverLayout({
     if (isLoading || !isAuthenticated || user?.role !== "driver") {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <p className="text-muted-foreground">{t("common.loading")}</p>
+                <LoadingSpinner size={300} />
             </div>
         )
     }

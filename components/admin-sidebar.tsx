@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
 import { useLanguage } from "@/lib/language-context"
@@ -35,6 +35,7 @@ import {
 // Sidebar content component (reusable for both desktop and mobile)
 function SidebarContent({ collapsed, onCollapse, onLinkClick }: { collapsed: boolean; onCollapse: () => void; onLinkClick?: () => void }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, logout } = useAuth()
   const { t } = useLanguage()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -123,7 +124,7 @@ function SidebarContent({ collapsed, onCollapse, onLinkClick }: { collapsed: boo
           )}
           onClick={() => {
             logout()
-            window.location.href = "/"
+            router.push("/")
           }}
         >
           <LogOut className="h-4 w-4" />
@@ -141,6 +142,7 @@ export function AdminSidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isLangOpen, setIsLangOpen] = useState(false)
+  const router = useRouter()
   const { user, logout } = useAuth()
   const { language, setLanguage } = useLanguage()
   const { theme, setTheme } = useTheme()
@@ -244,7 +246,7 @@ export function AdminSidebar() {
               className="text-white hover:bg-white/10 hover:text-white"
               onClick={() => {
                 logout()
-                window.location.href = "/"
+                router.push("/")
               }}
             >
               <LogOut className="h-4 w-4" />

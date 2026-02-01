@@ -8,6 +8,7 @@ import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Car, LogOut } from "lucide-react"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function DriverLayout({
   children,
@@ -26,7 +27,7 @@ export default function DriverLayout({
   if (isLoading || !isAuthenticated || user?.role !== "driver") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Loading...</p>
+        <LoadingSpinner size={300} />
       </div>
     )
   }
