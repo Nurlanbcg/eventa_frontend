@@ -405,13 +405,13 @@ export default function EventDetailPage() {
       </div>
 
       {/* Event Details */}
-      <Card className="border-border">
+      <Card className="border-border overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base">{t("events.eventInformation")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-muted rounded-lg">
+            <div className="p-2 bg-muted rounded-lg shrink-0">
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
@@ -420,7 +420,7 @@ export default function EventDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-muted rounded-lg">
+            <div className="p-2 bg-muted rounded-lg shrink-0">
               <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
@@ -428,11 +428,11 @@ export default function EventDetailPage() {
               <p className="text-sm font-medium">{event.time}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-1">
-            <div className="p-2 bg-muted rounded-lg">
+          <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-1 min-w-0">
+            <div className="p-2 bg-muted rounded-lg shrink-0">
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground">{t("events.location")}</p>
               <p className="text-sm font-medium truncate">{event.address}</p>
             </div>
@@ -864,21 +864,20 @@ export default function EventDetailPage() {
                 if (isCurrentDriver) return null
 
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={driver._id || driver.id}
-                    className="w-full p-4 rounded-lg border border-border hover:bg-muted/50 active:bg-muted transition-colors text-left touch-manipulation cursor-pointer select-none"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      handleAssignDriver(driver)
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
-                      handleAssignDriver(driver)
+                    role="button"
+                    tabIndex={0}
+                    className="w-full p-4 rounded-lg border border-border hover:bg-muted/50 active:bg-muted transition-colors text-left cursor-pointer select-none"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    onClick={() => handleAssignDriver(driver)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleAssignDriver(driver)
+                      }
                     }}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between pointer-events-none">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
                           <Car className="h-5 w-5 text-accent" />
@@ -892,7 +891,7 @@ export default function EventDetailPage() {
                       </div>
                       <StatusBadge status={driver.status} />
                     </div>
-                  </button>
+                  </div>
                 )
               })
             ) : (

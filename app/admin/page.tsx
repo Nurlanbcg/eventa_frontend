@@ -150,14 +150,16 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={translatedWeeklyData}>
+                <BarChart data={translatedWeeklyData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
                   <XAxis
                     dataKey="day"
                     stroke="currentColor"
                     className="text-muted-foreground"
-                    fontSize={12}
+                    fontSize={11}
                     tickLine={false}
                     axisLine={false}
+                    interval={0}
+                    tick={{ fill: 'currentColor' }}
                   />
                   <YAxis
                     stroke="currentColor"
@@ -165,13 +167,14 @@ export default function AdminDashboard() {
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
+                    width={30}
                   />
                   <Bar
                     dataKey="transfers"
                     name="Transfers"
                     fill="oklch(0.75 0.12 85)"
                     radius={[4, 4, 0, 0]}
-                    barSize={32}
+                    maxBarSize={40}
                   />
                 </BarChart>
               </ResponsiveContainer>

@@ -373,45 +373,47 @@ export default function EventsPage() {
                 return sortedEvents.map((event) => (
                   <Card
                     key={event._id || event.id}
-                    className="border-border cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="border-border cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden"
                     onClick={() => router.push(`/admin/events/${event._id || event.id}`)}
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base">
+                        <CardTitle className="text-base truncate flex-1 min-w-0">
                           {event.name}
                         </CardTitle>
-                        <StatusBadge status={event.status} />
+                        <div className="shrink-0">
+                          <StatusBadge status={event.status} />
+                        </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-sm overflow-hidden">
+                    <CardContent className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-3.5 w-3.5 shrink-0" />
                         <span>{event.date}</span>
                         <Clock className="h-3.5 w-3.5 ml-2 shrink-0" />
                         <span>{event.time}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
+                      <div className="flex items-center gap-2 text-muted-foreground min-w-0">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{event.address}</span>
+                        <span className="truncate block">{event.address}</span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <Users className="h-3.5 w-3.5" />
+                        <Users className="h-3.5 w-3.5 shrink-0" />
                         <span>{event.guestCount} {t("dashboard.guests")}</span>
                       </div>
                       <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={() => openEditModal(event)}>
-                          <Pencil className="h-3.5 w-3.5 mr-1" />
-                          {t("common.edit")}
+                        <Button variant="outline" size="sm" className="flex-1 bg-transparent min-w-0" onClick={() => openEditModal(event)}>
+                          <Pencil className="h-3.5 w-3.5 mr-1 shrink-0" />
+                          <span className="truncate">{t("common.edit")}</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          className="flex-1 bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground min-w-0"
                           onClick={() => openDeleteEventModal(event)}
                         >
-                          <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          {t("common.delete")}
+                          <Trash2 className="h-3.5 w-3.5 mr-1 shrink-0" />
+                          <span className="truncate">{t("common.delete")}</span>
                         </Button>
                       </div>
                     </CardContent>

@@ -307,41 +307,41 @@ export default function DriversPage() {
 
       {/* Stats */}
       <div className="grid gap-4 grid-cols-3">
-        <Card className="border-border">
+        <Card className="border-border overflow-hidden">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-success/20 rounded-lg">
+              <div className="p-2 bg-success/20 rounded-lg shrink-0">
                 <Car className="h-4 w-4 text-success" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-2xl font-semibold">{drivers.filter((d) => d.status === "available").length}</p>
-                <p className="text-xs text-muted-foreground">{t("drivers.available")}</p>
+                <p className="text-xs text-muted-foreground truncate">{t("drivers.available")}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border">
+        <Card className="border-border overflow-hidden">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-accent/20 rounded-lg">
+              <div className="p-2 bg-accent/20 rounded-lg shrink-0">
                 <Car className="h-4 w-4 text-accent" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-2xl font-semibold">{drivers.filter((d) => d.status === "on-trip").length}</p>
-                <p className="text-xs text-muted-foreground">{t("drivers.onTrip")}</p>
+                <p className="text-xs text-muted-foreground truncate">{t("drivers.onTrip")}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border">
+        <Card className="border-border overflow-hidden">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-muted rounded-lg">
+              <div className="p-2 bg-muted rounded-lg shrink-0">
                 <Car className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-2xl font-semibold">{drivers.length}</p>
-                <p className="text-xs text-muted-foreground">{t("drivers.totalDrivers")}</p>
+                <p className="text-xs text-muted-foreground truncate">{t("drivers.totalDrivers")}</p>
               </div>
             </div>
           </CardContent>
@@ -571,42 +571,42 @@ export default function DriversPage() {
                           {t("drivers.currentlyWith")}: {currentGuest.name}
                         </p>
                       )}
-                      <div className="flex gap-2 pt-3 border-t border-border">
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-border">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1"
+                          className="flex-1 min-w-0"
                           onClick={() => {
                             setSelectedDriver(driver)
                             setIsEditDriverOpen(true)
                           }}
                         >
-                          <Pencil className="h-4 w-4 mr-2" />
-                          {t("drivers.editDriver")}
+                          <Pencil className="h-4 w-4 shrink-0" />
+                          <span className="ml-2 truncate hidden sm:inline">{t("drivers.editDriver")}</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1"
+                          className="flex-1 min-w-0"
                           onClick={() => {
                             setSelectedDriver(driver)
                             setIsChangePasswordOpen(true)
                           }}
                         >
-                          <Shield className="h-4 w-4 mr-2" />
-                          {t("drivers.changePassword")}
+                          <Shield className="h-4 w-4 shrink-0" />
+                          <span className="ml-2 truncate hidden sm:inline">{t("drivers.changePassword")}</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          className="flex-1 min-w-0 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
                           onClick={() => {
                             setSelectedDriver(driver)
                             setIsDeleteDriverOpen(true)
                           }}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {t("drivers.deleteDriver")}
+                          <Trash2 className="h-4 w-4 shrink-0" />
+                          <span className="ml-2 truncate hidden sm:inline">{t("drivers.deleteDriver")}</span>
                         </Button>
                       </div>
                     </CardContent>
