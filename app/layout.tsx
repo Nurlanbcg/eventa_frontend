@@ -13,6 +13,12 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: 'Eventa',
   description: 'Admin panel for managing VIP driver transfers for event guests',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Eventa',
+  },
   icons: {
     icon: [
       { url: '/icon.png', sizes: '32x32', type: 'image/png' },

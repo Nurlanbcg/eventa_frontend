@@ -1,0 +1,19 @@
+{
+  "name": "Eventa",
+  "short_name": "Eventa",
+  "description": "Premium VIP Transport Management",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#d4a945",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
