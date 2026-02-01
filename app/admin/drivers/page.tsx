@@ -528,22 +528,22 @@ export default function DriversPage() {
                   ? driver.currentTaskId as Guest
                   : null;
                 return (
-                  <Card key={driver._id || driver.id} className="border-border">
+                  <Card key={driver._id || driver.id} className="border-border overflow-hidden">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
                             <Car className="h-5 w-5 text-accent" />
                           </div>
-                          <div>
-                            <CardTitle className="text-base">{driver.name}</CardTitle>
+                          <div className="min-w-0">
+                            <CardTitle className="text-base truncate">{driver.name}</CardTitle>
                             <p className="text-xs text-muted-foreground">{driver.licensePlate}</p>
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <StatusBadge status={driver.status} />
                           {driver.status === 'offline' && driver.busyReason && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground mt-1 max-w-[80px] truncate">
                               {driver.busyReason}
                             </p>
                           )}
@@ -557,12 +557,12 @@ export default function DriversPage() {
                       </div>
                       <div className="space-y-1 text-sm text-muted-foreground">
                         <a href={`tel:${driver.phone}`} className="flex items-center gap-1.5 hover:underline decoration-muted-foreground/50">
-                          <Phone className="h-3 w-3" />
-                          {driver.phone}
+                          <Phone className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{driver.phone}</span>
                         </a>
                         <p className="flex items-center gap-1.5">
-                          <Mail className="h-3 w-3" />
-                          {driver.email}
+                          <Mail className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{driver.email}</span>
                         </p>
                       </div>
                       {currentGuest && (

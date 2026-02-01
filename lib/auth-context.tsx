@@ -26,7 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check if token has expired
   const isTokenExpired = useCallback(() => {
     const expiryTime = localStorage.getItem("tokenExpiry")
-    if (!expiryTime) return true
+    // If no expiry time is stored, don't assume expired - let the server validate
+    if (!expiryTime) return false
     return Date.now() > parseInt(expiryTime, 10)
   }, [])
 
@@ -35,14 +36,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkAuth = async () => {
       const token = localStorage.getItem("token")
 
-      // Check if token exists and hasn't expired
-      if (token && !isTokenExpired()) {
+      // Check if token exists
+      if (token) {
+        // Check if token has expired (client-side check)
+        if (isTokenExpired()) {
+          // Token has expired, clear it
+          console.log("Session expired")
+          localStorage.removeItem("token")
+          localStorage.removeItem("tokenExpiry")
+          setUser(null)
+          setIsLoading(false)
+          return
+        }
+
+        // Validate token with server
         try {
           const response = await api.auth.me()
           if (response.success) {
             setUser(response.data.user)
+            // If tokenExpiry was missing, set it now for future checks
+            if (!localStorage.getItem("tokenExpiry")) {
+              localStorage.setItem("tokenExpiry", String(Date.now() + TOKEN_EXPIRY_MS))
+            }
           } else {
-            // Token invalid
+            // Token invalid on server
             localStorage.removeItem("token")
             localStorage.removeItem("tokenExpiry")
             setUser(null)
@@ -53,12 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem("tokenExpiry")
           setUser(null)
         }
-      } else if (token) {
-        // Token has expired, clear it
-        console.log("Session expired after 24 hours")
-        localStorage.removeItem("token")
-        localStorage.removeItem("tokenExpiry")
-        setUser(null)
       }
       setIsLoading(false)
     }

@@ -384,11 +384,11 @@ export default function EventsPage() {
                         <StatusBadge status={event.status} />
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
+                    <CardContent className="space-y-2 text-sm overflow-hidden">
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5" />
+                        <Calendar className="h-3.5 w-3.5 shrink-0" />
                         <span>{event.date}</span>
-                        <Clock className="h-3.5 w-3.5 ml-2" />
+                        <Clock className="h-3.5 w-3.5 ml-2 shrink-0" />
                         <span>{event.time}</span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">

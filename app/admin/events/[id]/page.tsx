@@ -739,22 +739,24 @@ export default function EventDetailPage() {
                   return (
                     <div
                       key={guest._id || guest.id}
-                      className="p-4 rounded-lg border border-border bg-card"
+                      className="p-4 rounded-lg border border-border bg-card overflow-hidden"
                     >
                       <div className="flex items-start justify-between gap-2 mb-3">
-                        <div>
-                          <p className="font-medium text-sm">{guest.name}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{guest.name}</p>
                           <p className="text-xs text-muted-foreground">{guest.phone}</p>
                         </div>
-                        <StatusBadge status={guest.status} />
+                        <div className="shrink-0">
+                          <StatusBadge status={guest.status} />
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-2">
+                      <p className="text-xs text-muted-foreground mb-2 truncate">
                         <span className="font-medium text-foreground">{t("guests.pickup")}:</span> {guest.pickupAddress}
                       </p>
                       {driver ? (
                         <div className="text-xs text-muted-foreground flex items-center gap-1 text-left w-full">
-                          <Car className="h-3 w-3" />
-                          <span className="font-medium text-foreground">{t("guests.driver")}:</span> {driver.name}
+                          <Car className="h-3 w-3 shrink-0" />
+                          <span className="font-medium text-foreground">{t("guests.driver")}:</span> <span className="truncate">{driver.name}</span>
                         </div>
                       ) : null}
                       <div className="flex gap-2 mt-2">
@@ -797,7 +799,7 @@ export default function EventDetailPage() {
 
       {/* Assign Driver Dialog */}
       <Dialog open={isAssignDriverOpen} onOpenChange={setIsAssignDriverOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedGuest?.assignedDriverId ? t("guests.changeDriver") : t("guests.assignDriver")}
@@ -865,8 +867,16 @@ export default function EventDetailPage() {
                   <button
                     type="button"
                     key={driver._id || driver.id}
-                    className="w-full p-4 rounded-lg border border-border hover:bg-muted/50 active:bg-muted transition-colors text-left touch-manipulation"
-                    onClick={() => handleAssignDriver(driver)}
+                    className="w-full p-4 rounded-lg border border-border hover:bg-muted/50 active:bg-muted transition-colors text-left touch-manipulation cursor-pointer select-none"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleAssignDriver(driver)
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      handleAssignDriver(driver)
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
