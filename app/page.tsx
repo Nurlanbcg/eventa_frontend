@@ -24,7 +24,7 @@ export default function LoginPage() {
   // Login State
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [rememberMe, setRememberMe] = useState(true)
+  const [rememberMe, setRememberMe] = useState(false)
   // Role is now auto-detected
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
