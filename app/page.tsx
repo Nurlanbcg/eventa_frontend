@@ -24,7 +24,7 @@ export default function LoginPage() {
   // Login State
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [rememberMe, setRememberMe] = useState(true)
+  const [rememberMe, setRememberMe] = useState(false)
   // Role is now auto-detected
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -49,8 +49,20 @@ export default function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false)
 
   const router = useRouter()
-  const { login } = useAuth()
+  const { login, isAuthenticated, isLoading: authLoading, user } = useAuth()
   const { t, language } = useLanguage()
+
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && user) {
+      // User is already logged in, redirect to their dashboard
+      if (user.role === 'driver') {
+        router.replace("/driver")
+      } else {
+        router.replace("/admin")
+      }
+    }
+  }, [authLoading, isAuthenticated, user, router])
 
   // Check system setup status on mount
   useEffect(() => {
@@ -155,7 +167,8 @@ export default function LoginPage() {
     }
   }
 
-  if (isSystemSetup === null) {
+  // Show loading while checking auth or setup status
+  if (authLoading || isSystemSetup === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <LoadingSpinner size={300} />

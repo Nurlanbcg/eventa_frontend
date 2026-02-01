@@ -41,11 +41,14 @@ const API_URL = getApiUrl();
 type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 interface FetchOptions extends Omit<RequestInit, 'body'> {
-    data?: Record<string, unknown>;
+    data?: object;
 }
 
 async function fetchClient<T>(endpoint: string, { data, ...options }: FetchOptions = {}): Promise<T> {
-    const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+    // Check both localStorage and sessionStorage for token
+    const token = typeof window !== 'undefined'
+        ? (localStorage.getItem("token") || sessionStorage.getItem("token"))
+        : null;
 
     const headers: HeadersInit = {
         "Content-Type": "application/json",
