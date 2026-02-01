@@ -74,6 +74,7 @@ export default function UsersPage() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [formError, setFormError] = useState("")
   const [passwordData, setPasswordData] = useState({
     newPassword: "",
     repeatPassword: "",
@@ -87,7 +88,7 @@ export default function UsersPage() {
     role: "user" as UserRole,
     isActive: true,
     moduleAccess: {
-      dashboard: false,
+      dashboard: true,
       events: false,
       drivers: false,
       reports: false,
@@ -143,7 +144,7 @@ export default function UsersPage() {
         ...formData,
         role: value,
         moduleAccess: {
-          dashboard: false,
+          dashboard: true,
           events: false,
           drivers: false,
           reports: false,
@@ -176,9 +177,10 @@ export default function UsersPage() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError("")
 
     if (formData.password !== formData.repeatPassword) {
-      toast.error(t("users.passwordMismatch") || "Passwords do not match")
+      setFormError(t("users.passwordMismatch"))
       return
     }
 
@@ -186,7 +188,7 @@ export default function UsersPage() {
     try {
       const response = await api.users.create(formData)
       if (response.success) {
-        toast.success(t("users.createSuccess") || "User created successfully")
+        toast.success(t("users.createSuccess"))
         setIsAddUserOpen(false)
         setFormData({
           name: "",
@@ -197,7 +199,7 @@ export default function UsersPage() {
           role: "user",
           isActive: true,
           moduleAccess: {
-            dashboard: false,
+            dashboard: true,
             events: false,
             drivers: false,
             reports: false,
@@ -206,9 +208,17 @@ export default function UsersPage() {
         })
         fetchUsers()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create user error:", error)
-      toast.error("Failed to create user")
+      // Check if error message indicates email already exists
+      if (error.message?.toLowerCase().includes("already exists") ||
+        error.message?.toLowerCase().includes("artıq") ||
+        error.message?.toLowerCase().includes("уже") ||
+        error.message?.toLowerCase().includes("zaten")) {
+        setFormError(t("users.emailExists"))
+      } else {
+        setFormError(t("users.createError"))
+      }
     } finally {
       setIsLoading(false)
     }
@@ -352,7 +362,7 @@ export default function UsersPage() {
               role: "user",
               isActive: true,
               moduleAccess: {
-                dashboard: false,
+                dashboard: true,
                 events: false,
                 drivers: false,
                 reports: false,
@@ -375,12 +385,12 @@ export default function UsersPage() {
             placeholder={t("users.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-9"
           />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" className="gap-2 h-9">
               <ArrowUpDown className="h-4 w-4" />
               {sortBy === "newest" ? t("users.sortNewest") : sortBy === "asc" ? t("users.sortAZ") : t("users.sortZA")}
             </Button>
@@ -407,7 +417,8 @@ export default function UsersPage() {
       ) : (
         <Card>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="overflow-x-auto hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -449,7 +460,7 @@ export default function UsersPage() {
                               disabled={(currentUser?._id || currentUser?.id) === (user._id || user.id)}
                             />
                             <span className="text-sm text-muted-foreground">
-                              {user.isActive ? t("status.active") : t("status.disabled")}
+                              {user.isActive ? t("users.active") : t("users.disabled")}
                             </span>
                           </div>
                         </TableCell>
@@ -484,6 +495,72 @@ export default function UsersPage() {
                   })()}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="grid gap-3 p-4 md:hidden">
+              {(() => {
+                const sortedUsers = [...filteredUsers].sort((a, b) => {
+                  if (sortBy === "asc") return a.name.localeCompare(b.name)
+                  if (sortBy === "desc") return b.name.localeCompare(a.name)
+                  return 0 // newest - maintain original order
+                })
+                return sortedUsers.map((user) => (
+                  <div
+                    key={user._id || user.id}
+                    className="p-4 rounded-lg border border-border bg-card"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        {user.role === "admin" ? (
+                          <Shield className="h-4 w-4 text-accent" />
+                        ) : (
+                          <ShieldOff className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <div>
+                          <p className="font-medium text-sm">{user.name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Switch
+                          checked={user.isActive ?? true}
+                          onCheckedChange={() => toggleUserStatus(user)}
+                          disabled={(currentUser?._id || currentUser?.id) === (user._id || user.id)}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      <span className="font-medium text-foreground">{t("users.tableEmail")}:</span> {user.email}
+                    </p>
+                    {user.phone && (
+                      <p className="text-xs text-muted-foreground mb-3">
+                        <span className="font-medium text-foreground">{t("users.tablePhone")}:</span> {user.phone}
+                      </p>
+                    )}
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => openEditModal(user)}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                        {t("users.editUser")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => openDeleteModal(user)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        {t("users.deleteUser")}
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -578,7 +655,7 @@ export default function UsersPage() {
                   id="phone"
                   placeholder={t("users.phonePlaceholder")}
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9+]/g, "") })}
                 />
               </div>
               <div className="space-y-2">
@@ -602,7 +679,7 @@ export default function UsersPage() {
                   <Checkbox
                     id="access-dashboard"
                     checked={formData.moduleAccess.dashboard}
-                    disabled={formData.role === "admin"}
+                    disabled={true}
                     onCheckedChange={(checked) =>
                       setFormData({
                         ...formData,
@@ -681,11 +758,17 @@ export default function UsersPage() {
               </div>
             </div>
 
+            {formError && (
+              <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+                {formError}
+              </div>
+            )}
+
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={isLoading} className="flex-1">
                 {isLoading ? t("users.creating") : t("users.createButton")}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setIsAddUserOpen(false)} className="flex-1">
+              <Button type="button" variant="outline" onClick={() => { setFormError(""); setIsAddUserOpen(false) }} className="flex-1">
                 {t("users.cancel")}
               </Button>
             </div>
@@ -734,7 +817,7 @@ export default function UsersPage() {
                   id="edit-phone"
                   placeholder="+1 234 567 890"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9+]/g, "") })}
                 />
               </div>
               <div className="space-y-2">
@@ -764,7 +847,7 @@ export default function UsersPage() {
                     onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                   />
                   <span className="text-sm text-muted-foreground">
-                    {formData.isActive ? t("status.active") : t("status.disabled")}
+                    {formData.isActive ? t("users.active") : t("users.disabled")}
                   </span>
                 </div>
               </div>
@@ -777,7 +860,7 @@ export default function UsersPage() {
                   <Checkbox
                     id="edit-access-dashboard"
                     checked={formData.moduleAccess.dashboard}
-                    disabled={formData.role === "admin"}
+                    disabled={true}
                     onCheckedChange={(checked) =>
                       setFormData({
                         ...formData,

@@ -217,7 +217,7 @@ export default function GuestsPage() {
                     type="tel"
                     placeholder={t("guests.phonePlaceholder")}
                     value={addGuestFormData.phone}
-                    onChange={(e) => setAddGuestFormData({ ...addGuestFormData, phone: e.target.value })}
+                    onChange={(e) => setAddGuestFormData({ ...addGuestFormData, phone: e.target.value.replace(/[^0-9+]/g, "") })}
                     required
                   />
                 </div>
@@ -509,7 +509,7 @@ export default function GuestsPage() {
                   id="editGuestPhone"
                   type="tel"
                   value={selectedGuest?.phone || ""}
-                  onChange={(e) => selectedGuest && setSelectedGuest({ ...selectedGuest, phone: e.target.value })}
+                  onChange={(e) => selectedGuest && setSelectedGuest({ ...selectedGuest, phone: e.target.value.replace(/[^0-9+]/g, "") })}
                   required
                 />
               </div>

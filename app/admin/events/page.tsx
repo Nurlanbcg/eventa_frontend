@@ -241,12 +241,12 @@ export default function EventsPage() {
               placeholder={t("events.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-9"
             />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" className="gap-2 h-9">
                 <ArrowUpDown className="h-4 w-4" />
                 {sortBy === "newest" ? t("events.sortNewest") : sortBy === "asc" ? t("events.sortAZ") : t("events.sortZA")}
               </Button>
@@ -292,14 +292,15 @@ export default function EventsPage() {
                       return 0 // newest - maintain original order
                     })
                     return sortedEvents.map((event) => (
-                      <TableRow key={event._id || event.id}>
+                      <TableRow
+                        key={event._id || event.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => router.push(`/admin/events/${event._id || event.id}`)}
+                      >
                         <TableCell>
-                          <Link
-                            href={`/admin/events/${event._id || event.id}`}
-                            className="font-medium hover:text-accent transition-colors"
-                          >
+                          <span className="font-medium">
                             {event.name}
-                          </Link>
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2 text-sm">
@@ -324,7 +325,7 @@ export default function EventsPage() {
                         <TableCell>
                           <StatusBadge status={event.status} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -333,12 +334,7 @@ export default function EventsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link href={`/admin/events/${event._id || event.id}`}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  {t("events.viewDetails")}
-                                </Link>
-                              </DropdownMenuItem>
+
                               <DropdownMenuItem onClick={() => openEditModal(event)}>
                                 <Pencil className="h-4 w-4 mr-2" />
                                 {t("events.editEvent")}
@@ -363,14 +359,16 @@ export default function EventsPage() {
             {/* Mobile Cards */}
             <div className="grid gap-4 md:hidden">
               {filteredEvents.map((event) => (
-                <Card key={event._id || event.id} className="border-border">
+                <Card
+                  key={event._id || event.id}
+                  className="border-border cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => router.push(`/admin/events/${event._id || event.id}`)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
-                      <Link href={`/admin/events/${event._id || event.id}`}>
-                        <CardTitle className="text-base hover:text-accent transition-colors">
-                          {event.name}
-                        </CardTitle>
-                      </Link>
+                      <CardTitle className="text-base">
+                        {event.name}
+                      </CardTitle>
                       <StatusBadge status={event.status} />
                     </div>
                   </CardHeader>
@@ -389,12 +387,19 @@ export default function EventsPage() {
                       <Users className="h-3.5 w-3.5" />
                       <span>{event.guestCount} {t("dashboard.guests")}</span>
                     </div>
-                    <div className="flex gap-2 pt-2">
-                      <Button asChild variant="outline" size="sm" className="flex-1 bg-transparent">
-                        <Link href={`/admin/events/${event._id || event.id}`}>{t("common.view")}</Link>
-                      </Button>
+                    <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
                       <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={() => openEditModal(event)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" />
                         {t("common.edit")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => openDeleteEventModal(event)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        {t("common.delete")}
                       </Button>
                     </div>
                   </CardContent>
@@ -439,11 +444,15 @@ export default function EventsPage() {
                     <Input
                       id="date"
                       type="text"
-                      placeholder="GG/AA/YYYY"
-                      pattern="\d{2}/\d{2}/\d{4}"
+                      placeholder={t("events.datePlaceholder")}
+                      pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}"
                       value={formData.date}
                       onChange={(e) => {
                         let value = e.target.value.replace(/[^\d/]/g, "")
+                        if (value.length < formData.date.length) {
+                          setFormData({ ...formData, date: value })
+                          return
+                        }
                         if (value.length === 2 && !value.includes("/")) value += "/"
                         if (value.length === 5 && value.split("/").length === 2) value += "/"
                         if (value.length <= 10) setFormData({ ...formData, date: value })
@@ -460,11 +469,15 @@ export default function EventsPage() {
                     <Input
                       id="time"
                       type="text"
-                      placeholder="SS:DD"
-                      pattern="\d{2}:\d{2}"
+                      placeholder={t("events.timePlaceholder")}
+                      pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
                       value={formData.time}
                       onChange={(e) => {
                         let value = e.target.value.replace(/[^\d:]/g, "")
+                        if (value.length < formData.time.length) {
+                          setFormData({ ...formData, time: value })
+                          return
+                        }
                         if (value.length === 2 && !value.includes(":")) value += ":"
                         if (value.length <= 5) setFormData({ ...formData, time: value })
                       }}
@@ -554,11 +567,15 @@ export default function EventsPage() {
                     <Input
                       id="edit-date"
                       type="text"
-                      placeholder="GG/AA/YYYY"
-                      pattern="\d{2}/\d{2}/\d{4}"
+                      placeholder={t("events.datePlaceholder")}
+                      pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}"
                       value={editFormData.date}
                       onChange={(e) => {
                         let value = e.target.value.replace(/[^\d/]/g, "")
+                        if (value.length < editFormData.date.length) {
+                          setEditFormData({ ...editFormData, date: value })
+                          return
+                        }
                         if (value.length === 2 && !value.includes("/")) value += "/"
                         if (value.length === 5 && value.split("/").length === 2) value += "/"
                         if (value.length <= 10) setEditFormData({ ...editFormData, date: value })
@@ -575,11 +592,15 @@ export default function EventsPage() {
                     <Input
                       id="edit-time"
                       type="text"
-                      placeholder="SS:DD"
-                      pattern="\d{2}:\d{2}"
+                      placeholder={t("events.timePlaceholder")}
+                      pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
                       value={editFormData.time}
                       onChange={(e) => {
                         let value = e.target.value.replace(/[^\d:]/g, "")
+                        if (value.length < editFormData.time.length) {
+                          setEditFormData({ ...editFormData, time: value })
+                          return
+                        }
                         if (value.length === 2 && !value.includes(":")) value += ":"
                         if (value.length <= 5) setEditFormData({ ...editFormData, time: value })
                       }}
@@ -673,7 +694,16 @@ export default function EventsPage() {
 
         {/* Map Picker Modal */}
         <Dialog open={isMapModalOpen} onOpenChange={setIsMapModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
+          <DialogContent
+            className="max-w-4xl max-h-[95vh] overflow-y-auto"
+            onInteractOutside={(e) => {
+              const target = e.target as HTMLElement;
+              // Prevent closing when clicking on Google Maps autocomplete items
+              if (target.closest('.pac-container') || target.closest('.pac-item')) {
+                e.preventDefault();
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">{t("map.title")}</DialogTitle>
               <DialogDescription className="text-sm">

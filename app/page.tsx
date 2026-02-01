@@ -12,6 +12,7 @@ import { Car, Shield, User, Send, Eye, EyeOff } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { ModeToggle } from "@/components/mode-toggle"
 
 import { api } from "@/lib/api"
 import { toast } from "sonner"
@@ -43,10 +44,12 @@ export default function LoginPage() {
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false)
   const [resetEmail, setResetEmail] = useState("")
   const [resetSuccess, setResetSuccess] = useState(false)
+  const [resetError, setResetError] = useState("")
+  const [resetLoading, setResetLoading] = useState(false)
 
   const router = useRouter()
   const { login } = useAuth()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   // Check system setup status on mount
   useEffect(() => {
@@ -136,11 +139,20 @@ export default function LoginPage() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    // Simulate sending reset email
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setResetSuccess(true)
-    setIsLoading(false)
+    setResetLoading(true)
+    setResetError("")
+    try {
+      const response = await api.auth.forgotPassword(resetEmail, language)
+      if (response.success) {
+        setResetSuccess(true)
+      } else {
+        setResetError(response.message || t("forgot.emailNotFound") || "Email not found")
+      }
+    } catch (err: any) {
+      setResetError(err.message || t("forgot.emailNotFound") || "Email not found")
+    } finally {
+      setResetLoading(false)
+    }
   }
 
   if (isSystemSetup === null) {
@@ -154,8 +166,9 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-background p-4 relative">
       {/* Language Selector - Top Right */}
-      <div className="absolute top-6 right-6">
+      <div className="absolute top-6 right-6 flex items-center gap-2">
         <LanguageSwitcher />
+        <ModeToggle />
       </div>
 
       <div className="w-full max-w-md">
@@ -173,7 +186,6 @@ export default function LoginPage() {
           <Card className="border-border shadow-lg">
             <CardHeader className="space-y-1 pb-4 text-center">
               <div className="flex items-center justify-center gap-2">
-                <Shield className="h-5 w-5 text-accent" />
                 <CardTitle className="text-xl">{t("login.title")}</CardTitle>
               </div>
               <CardDescription>
@@ -351,6 +363,7 @@ export default function LoginPage() {
           if (!open) {
             setResetEmail("")
             setResetSuccess(false)
+            setResetError("")
           }
         }}
       >
@@ -374,14 +387,13 @@ export default function LoginPage() {
                   required
                 />
               </div>
+              {resetError && (
+                <p className="text-sm text-destructive text-center">{resetError}</p>
+              )}
               <div className="flex gap-3 pt-2">
-                <Button type="submit" disabled={isLoading} className="flex-1">
-                  {isLoading ? (
-                    <LoadingSpinner size={16} className="mr-2" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  {isLoading ? t("forgot.sending") : t("forgot.sendLink")}
+                <Button type="submit" disabled={resetLoading} className="flex-1">
+                  {!resetLoading && <Send className="h-4 w-4 mr-2" />}
+                  {resetLoading ? t("forgot.sending") : t("forgot.sendLink")}
                 </Button>
                 <Button
                   type="button"

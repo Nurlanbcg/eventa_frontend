@@ -95,14 +95,14 @@ export default function AdminDashboard() {
             {t("dashboard.subtitle")}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm">
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex">
+          <Button asChild size="sm" className="w-full sm:w-auto">
             <Link href="/admin/events?create=true">
               <Plus className="h-4 w-4 mr-1" />
               {t("dashboard.createEvent")}
             </Link>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
             <Link href="/admin/drivers?add=true">
               <Plus className="h-4 w-4 mr-1" />
               {t("drivers.addDriver")}
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t("dashboard.todayEvents")}
           value={stats.todayEvents}
@@ -171,6 +171,7 @@ export default function AdminDashboard() {
                     name="Transfers"
                     fill="oklch(0.75 0.12 85)"
                     radius={[4, 4, 0, 0]}
+                    barSize={32}
                   />
                 </BarChart>
               </ResponsiveContainer>

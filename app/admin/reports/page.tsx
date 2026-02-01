@@ -38,6 +38,24 @@ import {
   Cell,
 } from "recharts"
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+
 export default function ReportsPage() {
   const { t, language } = useLanguage()
   const [stats, setStats] = useState({
@@ -57,6 +75,11 @@ export default function ReportsPage() {
   ])
   const [recentActivity, setRecentActivity] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+  const [exportDataType, setExportDataType] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -75,9 +98,9 @@ export default function ReportsPage() {
 
           fullStats.completedTransfers = completedTransfersThisWeek
           fullStats.totalGuestsServed = data.totalGuests || 0
-          fullStats.activeEvents = (data.inProgressEvents || 0) + (data.todayEvents || 0)
+          fullStats.activeEvents = data.totalEvents || 0
           fullStats.completedEvents = data.completedEvents || 0
-          fullStats.inProgressEvents = data.inProgressEvents || 0
+          fullStats.inProgressEvents = (data.inProgressEvents || 0) + (data.upcomingEvents || 0)
           fullStats.planningEvents = data.upcomingEvents || 0
           fullStats.weeklyData = data.weeklyData || []
           fullStats.trends = data.trends || { guests: { value: 0, positive: true } }
@@ -86,14 +109,15 @@ export default function ReportsPage() {
         // Store raw vehicle types
         const rawVehicleData = [
           { type: "sedan", value: 0, color: "oklch(0.75 0.12 85)" },
-          { type: "suv", value: 0, color: "oklch(0.15 0 0)" },
-          { type: "minivan", value: 0, color: "oklch(0.55 0.08 85)" },
+          { type: "suv", value: 0, color: "oklch(0.65 0.15 240)" },
+          { type: "minivan", value: 0, color: "oklch(0.65 0.2 300)" },
           { type: "bus", value: 0, color: "oklch(0.65 0.15 145)" },
         ]
 
         if (driversResponse.success) {
           const data = driversResponse.data
-          fullStats.driversWorkingToday = data.driversOnRoute || 0
+          // Use active drivers (completed/on-trip today) or fallback to on-route
+          fullStats.driversWorkingToday = data.driversActiveToday || data.driversOnRoute || 0
           fullStats.availableDrivers = data.availableDrivers || 0
 
           if (data.vehicleDistribution) {
@@ -111,8 +135,10 @@ export default function ReportsPage() {
         setStats(prev => ({ ...prev, ...fullStats }))
         setVehicleTypeData(rawVehicleData)
 
-        if (guestsResponse.success) {
-          setRecentActivity(guestsResponse.data.guests || [])
+        // Fetch recent transfers for the table
+        const transfersResponse = await api.transfers.getAll({ limit: 5, sort: '-updatedAt' })
+        if (transfersResponse.success) {
+          setRecentActivity(transfersResponse.data.transfers || [])
         }
       } catch (error) {
         console.error("Failed to fetch report stats:", error)
@@ -146,9 +172,251 @@ export default function ReportsPage() {
     { status: t("reports.statusPlanning"), count: stats.planningEvents },
   ]
 
-  const handleExport = (type: string) => {
-    // In a real app, this would trigger a download
-    alert(`Exporting ${type} report... (Demo)`)
+  const parseDate = (dateStr: string) => {
+    if (!dateStr) return null;
+    const [day, month, year] = dateStr.split("/").map(Number);
+    if (!day || !month || !year) return null;
+    return new Date(year, month - 1, day);
+  }
+
+  const handleDateChange = (value: string, setter: (val: string) => void, prevValue: string) => {
+    let cleanValue = value.replace(/[^\d/]/g, "")
+    // Prevent adding more than 10 characters
+    if (cleanValue.length > 10) return
+
+    // If deleting (length decreased), don't auto-append
+    if (cleanValue.length < prevValue.length) {
+      setter(cleanValue)
+      return
+    }
+
+    // Auto-insert slash logic
+    if (cleanValue.length === 2 && !cleanValue.includes("/")) {
+      cleanValue += "/"
+    } else if (cleanValue.length === 5 && cleanValue.split("/").length === 2) {
+      cleanValue += "/"
+    }
+    setter(cleanValue)
+  }
+
+  const handleExport = async () => {
+    try {
+      setExporting(true)
+      // Dynamic import to avoid SSR issues with exceljs
+      const ExcelJS = await import("exceljs")
+
+      let data: any[] = []
+      let filename = `report-${exportDataType}-${startDate.replace(/\//g, '-')}_${endDate.replace(/\//g, '-')}.xlsx`
+
+      const start = parseDate(startDate)
+      const end = parseDate(endDate)
+
+      if (!exportDataType) {
+        alert(t("reports.selectReportType") || "Hesabat növünü seçin")
+        setExporting(false)
+        return
+      }
+
+      if (!start || !end) {
+        alert("Please enter valid dates")
+        setExporting(false)
+        return
+      }
+      // Set end date to end of day
+      end.setHours(23, 59, 59, 999)
+
+      const parseDataDate = (dateVal: any) => {
+        if (!dateVal) return null
+
+        // If already a Date object
+        if (dateVal instanceof Date) return dateVal
+
+        // If string, try to detect format
+        if (typeof dateVal === 'string') {
+          // Check for DD/MM/YYYY format (e.g. 27/01/2026)
+          if (/^\d{2}\/\d{2}\/\d{4}/.test(dateVal)) {
+            const [day, month, year] = dateVal.split('/').map(Number)
+            return new Date(year, month - 1, day)
+          }
+
+          // Try standard parsing
+          const d = new Date(dateVal)
+          if (!isNaN(d.getTime())) return d
+        }
+
+        return null
+      }
+
+      // Fetch and filter data based on type
+      if (exportDataType === "drivers") {
+        const response = await api.drivers.getAll({ limit: 1000 })
+        if (response.success) {
+          data = response.data.drivers
+            .filter((d: any) => {
+              const date = parseDataDate(d.createdAt)
+              return date && date >= start && date <= end
+            })
+            .map((d: any) => ({
+              [t("reports.colName")]: d.name,
+              [t("reports.colEmail")]: d.email,
+              [t("reports.colPhone")]: d.phone,
+              [t("reports.colStatus")]: t(`status.${d.status}`) || d.status,
+              [t("reports.colVehicle")]: d.vehicleType || "—",
+              [t("reports.colPlate")]: d.licensePlate || "—",
+              [t("reports.colCreated")]: parseDataDate(d.createdAt)?.toLocaleDateString('en-GB') || d.createdAt
+            }))
+        }
+      } else if (exportDataType === "events") {
+        const [eventsResponse, guestsResponse] = await Promise.all([
+          api.events.getAll({ limit: 1000 }),
+          api.guests.getAll({ limit: 5000 })
+        ])
+
+        if (eventsResponse.success) {
+          // Create a map of transfer counts (assigned/completed guests) per event
+          const transferCounts = new Map<string, number>()
+          const guestCounts = new Map<string, number>()
+
+          if (guestsResponse.success) {
+            guestsResponse.data.guests.forEach((g: any) => {
+              // Handle populated eventId or string eventId
+              const eventId = typeof g.eventId === 'object' ? g.eventId?._id : g.eventId
+              if (eventId) {
+                // Count all guests as guest count for the event
+                guestCounts.set(eventId, (guestCounts.get(eventId) || 0) + 1)
+
+                if (g.status === 'completed') {
+                  transferCounts.set(eventId, (transferCounts.get(eventId) || 0) + 1)
+                }
+              }
+            })
+          }
+
+          data = eventsResponse.data.events
+            .filter((e: any) => {
+              const d = parseDataDate(e.date)
+              // Handle potential invalid dates
+              if (!d) return false;
+              return d >= start && d <= end
+            })
+            .map((e: any) => ({
+              [t("reports.colName")]: e.name,
+              [t("reports.colDate")]: parseDataDate(e.date)?.toLocaleDateString('en-GB') || e.date,
+              [t("reports.colTime")]: e.time,
+              [t("reports.colLocation")]: e.address || e.location,
+              [t("reports.colStatus")]: t(`status.${e.status}`) || e.status,
+              [t("reports.colGuestCount")]: e.guestCount || guestCounts.get(e._id || e.id) || 0,
+              [t("reports.colTransferCount")]: transferCounts.get(e._id || e.id) || 0
+            }))
+        }
+      } else if (exportDataType === "guests") {
+        const response = await api.guests.getAll({ limit: 1000 })
+        if (response.success) {
+          data = response.data.guests
+            .filter((g: any) => {
+              const date = parseDataDate(g.updatedAt || g.createdAt)
+              return date && date >= start && date <= end
+            })
+            .map((g: any) => ({
+              [t("reports.colName")]: g.name,
+              [t("reports.colPhone")]: g.phone || "—",
+              [t("reports.colHotel")]: g.pickupAddress || "—",
+              [t("reports.colEvent")]: g.eventId?.name || "—",
+              [t("reports.colDriver")]: g.assignedDriverId?.name || "Unassigned",
+              [t("reports.colStatus")]: t(`status.${g.status}`) || g.status,
+              [t("reports.colPickupTime")]: g.pickupTime ? new Date(g.pickupTime).toLocaleString('en-GB') : "—"
+            }))
+        }
+      } else if (exportDataType === "transfers") {
+        const response = await api.transfers.getAll({ limit: 1000 })
+        if (response.success) {
+          data = response.data.transfers
+            .filter((t: any) => {
+              const date = parseDataDate(t.createdAt)
+              return date && date >= start && date <= end
+            })
+            .map((tr: any) => ({
+              [t("reports.colTransferID")]: tr._id,
+              [t("reports.colGuest")]: tr.guestId?.name || "—",
+              [t("reports.colDriver")]: tr.driverId?.name || "—",
+              [t("reports.colFrom")]: tr.guestId?.pickupAddress || "—",
+              [t("reports.colTo")]: tr.guestId?.dropoffAddress || "—",
+              [t("reports.colAcceptedTime")]: tr.acceptedTime ? new Date(tr.acceptedTime).toLocaleString('en-GB') : "—",
+              [t("reports.colDriverPickupTime")]: tr.pickupTime ? new Date(tr.pickupTime).toLocaleString('en-GB') : "—",
+              [t("reports.colCompletedTime")]: tr.completedTime ? new Date(tr.completedTime).toLocaleString('en-GB') : "—",
+              [t("reports.colStatus")]: t(`status.${tr.status}`) || tr.status
+            }))
+        }
+      }
+
+      if (data.length === 0) {
+        alert(t("common.noData"))
+        setExporting(false)
+        return
+      }
+
+      // Create workbook and worksheet using ExcelJS
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet("Report")
+
+      // Add headers from the first data object's keys
+      if (data.length > 0) {
+        const headers = Object.keys(data[0])
+        worksheet.addRow(headers)
+
+        // Style header row
+        const headerRow = worksheet.getRow(1)
+        headerRow.font = { bold: true }
+        headerRow.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' }
+          }
+        })
+
+        // Add data rows
+        data.forEach((row) => {
+          worksheet.addRow(Object.values(row))
+        })
+
+        // Auto-fit column widths
+        worksheet.columns.forEach((column) => {
+          let maxLength = 10
+          column.eachCell?.({ includeEmpty: true }, (cell) => {
+            const cellValue = cell.value?.toString() || ''
+            maxLength = Math.max(maxLength, cellValue.length)
+          })
+          column.width = Math.min(maxLength + 2, 50)
+        })
+      }
+
+      // Generate buffer and trigger download
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+    } catch (error) {
+      console.error("Export failed:", error)
+      alert(t("common.error"))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <LoadingSpinner size={300} />
+      </div>
+    )
   }
 
   return (
@@ -162,19 +430,15 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport("CSV")}>
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            {t("reports.exportCSV")}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleExport("PDF")}>
-            <FileText className="h-4 w-4 mr-2" />
-            {t("reports.exportPDF")}
+          <Button onClick={() => setIsExportModalOpen(true)}>
+            <Download className="h-4 w-4 mr-2" />
+            {t("reports.downloadReport") || "Hesabatı Yüklə"}
           </Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t("reports.driversWorkingToday")}
           value={stats.driversWorkingToday}
@@ -236,12 +500,7 @@ export default function ReportsPage() {
                     name="Transfers"
                     fill="oklch(0.75 0.12 85)"
                     radius={[4, 4, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="guests"
-                    name="Guests"
-                    fill="oklch(0.15 0 0)"
-                    radius={[4, 4, 0, 0]}
+                    barSize={32}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -335,23 +594,25 @@ export default function ReportsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentActivity.map((guest: any) => {
-                const driver = guest.assignedDriverId
-                const event = guest.eventId
+              {recentActivity.map((transfer: any) => {
+                const guest = transfer.guestId
+                const driver = transfer.driverId
+                const event = transfer.eventId
+                const timeStr = transfer.completedTime || transfer.pickupTime || transfer.createdAt
                 return (
-                  <TableRow key={guest._id || guest.id}>
+                  <TableRow key={transfer._id}>
                     <TableCell className="font-medium">
-                      {guest.name || "Unknown"}
+                      {guest?.name || "Unknown"}
                     </TableCell>
                     <TableCell>{driver?.name || "—"}</TableCell>
                     <TableCell>{event?.name || "—"}</TableCell>
                     <TableCell>
                       <StatusBadge
-                        status={guest.status}
+                        status={transfer.status}
                       />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {guest.pickupTime || "-"}
+                      {timeStr ? new Date(timeStr).toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' }) : "-"}
                     </TableCell>
                   </TableRow>
                 )
@@ -361,25 +622,71 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
-      {/* Export Actions */}
-      <Card className="border-border bg-muted/30">
-        <CardContent className="py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <p className="font-medium">{t("reports.downloadFullReport")}</p>
-              <p className="text-sm text-muted-foreground">
-                {t("reports.downloadDescription")}
-              </p>
+
+      <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("reports.exportModalTitle") || "Hesabatı Yüklə"}</DialogTitle>
+            <DialogDescription>
+              {t("reports.selectCriteria") || "Məlumat növünü və vaxt intervalını seçin"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{t("reports.dataType") || "Məlumat Növü"}</Label>
+              <Select value={exportDataType} onValueChange={setExportDataType}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("reports.selectReportType") || "Hesabat növünü seçin"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="drivers">{t("reports.typeDrivers") || "Sürücülər"}</SelectItem>
+                  <SelectItem value="transfers">{t("reports.typeTransfers") || "Transferlər"}</SelectItem>
+                  <SelectItem value="events">{t("reports.typeEvents") || "Tədbirlər"}</SelectItem>
+                  <SelectItem value="guests">{t("reports.typeGuests") || "Qonaqlar"}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={() => handleExport("Full CSV")}>
-                <Download className="h-4 w-4 mr-2" />
-                {t("reports.downloadButton")}
-              </Button>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t("reports.startDate")}</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="DD/MM/YYYY"
+                    value={startDate}
+                    onChange={(e) => handleDateChange(e.target.value, setStartDate, startDate)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("reports.endDate")}</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="DD/MM/YYYY"
+                    value={endDate}
+                    onChange={(e) => handleDateChange(e.target.value, setEndDate, endDate)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex gap-3">
+            <Button onClick={() => {
+              handleExport()
+              setIsExportModalOpen(false)
+            }} className="flex-1">
+              <Download className="h-4 w-4 mr-2" />
+              {t("reports.download") || "Yüklə"}
+            </Button>
+            <Button variant="outline" onClick={() => setIsExportModalOpen(false)} className="flex-1">
+              {t("common.cancel")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

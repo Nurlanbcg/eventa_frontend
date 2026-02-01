@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MapPin, Locate, Search, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { google } from "google-maps"
+import { Loader } from "@googlemaps/js-api-loader"
 
 interface MapPickerProps {
   initialAddress?: string
@@ -31,9 +31,9 @@ interface MapPickerProps {
 
 export function MapPicker({ initialAddress = "", onLocationSelect, onCancel, className }: MapPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<google.maps.Map | null>(null)
-  const markerRef = useRef<google.maps.Marker | null>(null)
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
+  const mapInstanceRef = useRef<any>(null)
+  const markerRef = useRef<any>(null)
+  const autocompleteRef = useRef<any>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const [isLoading, setIsLoading] = useState(true)
@@ -46,23 +46,21 @@ export function MapPicker({ initialAddress = "", onLocationSelect, onCancel, cla
   useEffect(() => {
     if (!mapRef.current) return
 
-    const loadGoogleMaps = () => {
-      // Check if Google Maps is already loaded
-      if (window.google && window.google.maps) {
-        initializeMap()
-        return
-      }
+    const loadGoogleMaps = async () => {
+      const loader = new Loader({
+        apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
+        version: "weekly",
+        libraries: ["places"],
+        language: "az"
+      })
 
-      // Load Google Maps script
-      const script = document.createElement("script")
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&language=az`
-      script.async = true
-      script.defer = true
-      script.onload = initializeMap
-      script.onerror = () => {
+      try {
+        await loader.load()
+        initializeMap()
+      } catch (e) {
+        console.error("Failed to load Google Maps:", e)
         setIsLoading(false)
       }
-      document.head.appendChild(script)
     }
 
     const initializeMap = () => {
@@ -111,7 +109,7 @@ export function MapPicker({ initialAddress = "", onLocationSelect, onCancel, cla
       })
 
       // Handle map clicks
-      map.addListener("click", (e: google.maps.MapMouseEvent) => {
+      map.addListener("click", (e: any) => {
         if (e.latLng) {
           marker.setPosition(e.latLng)
           updateLocationFromCoords(e.latLng.lat(), e.latLng.lng())
@@ -131,7 +129,12 @@ export function MapPicker({ initialAddress = "", onLocationSelect, onCancel, cla
           if (place.geometry?.location) {
             const lat = place.geometry.location.lat()
             const lng = place.geometry.location.lng()
-            const address = place.formatted_address || place.name || ""
+            let address = place.formatted_address || place.name || ""
+
+            // If we have a name (like business name) and it's not in the address, prepend it
+            if (place.name && place.formatted_address && !place.formatted_address.includes(place.name)) {
+              address = `${place.name}, ${place.formatted_address}`
+            }
 
             map.setCenter({ lat, lng })
             map.setZoom(16)
@@ -297,16 +300,7 @@ export function MapPicker({ initialAddress = "", onLocationSelect, onCancel, cla
         <div ref={mapRef} className="w-full h-full" />
       </div>
 
-      {/* Selected Address Display */}
-      {selectedAddress && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Seçilmiş ünvan</Label>
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-muted border border-border">
-            <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-            <p className="text-sm flex-1">{selectedAddress}</p>
-          </div>
-        </div>
-      )}
+      {/* Selected Address Display Removed */}
 
       {/* Action Buttons */}
       <div className="flex gap-3 pt-2">

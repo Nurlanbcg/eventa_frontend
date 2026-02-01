@@ -108,8 +108,28 @@ export default function DriversPage() {
     }
   }
 
+  // Silent refresh for real-time updates (no loading state)
+  const refreshDrivers = async () => {
+    try {
+      const response = await api.drivers.getAll({ limit: 100 })
+      if (response.success) {
+        setDrivers(response.data.drivers)
+      }
+    } catch (e) {
+      console.error("Failed to refresh drivers", e)
+    }
+  }
+
   useEffect(() => {
     fetchDrivers()
+
+    // Poll for real-time updates every 5 seconds
+    const pollInterval = setInterval(() => {
+      refreshDrivers()
+    }, 5000)
+
+    // Cleanup on unmount
+    return () => clearInterval(pollInterval)
   }, [])
 
   useEffect(() => {
@@ -286,7 +306,7 @@ export default function DriversPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 grid-cols-3">
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -336,12 +356,12 @@ export default function DriversPage() {
             placeholder={t("drivers.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-9"
           />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" className="gap-2 h-9">
               <ArrowUpDown className="h-4 w-4" />
               {sortBy === "newest" ? t("drivers.sortNewest") : sortBy === "asc" ? t("drivers.sortAZ") : t("drivers.sortZA")}
             </Button>
@@ -405,10 +425,10 @@ export default function DriversPage() {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <p className="text-sm flex items-center gap-1.5">
+                            <a href={`tel:${driver.phone}`} className="text-sm flex items-center gap-1.5 hover:underline decoration-muted-foreground/50">
                               <Phone className="h-3 w-3 text-muted-foreground" />
                               {driver.phone}
-                            </p>
+                            </a>
                             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                               <Mail className="h-3 w-3" />
                               {driver.email}
@@ -424,6 +444,11 @@ export default function DriversPage() {
                         <TableCell>
                           <div className="space-y-1">
                             <StatusBadge status={driver.status} />
+                            {driver.status === 'offline' && driver.busyReason && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {driver.busyReason}
+                              </p>
+                            )}
                             {currentGuest && (
                               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
@@ -502,7 +527,14 @@ export default function DriversPage() {
                           <p className="text-xs text-muted-foreground">{driver.licensePlate}</p>
                         </div>
                       </div>
-                      <StatusBadge status={driver.status} />
+                      <div className="text-right">
+                        <StatusBadge status={driver.status} />
+                        {driver.status === 'offline' && driver.busyReason && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {driver.busyReason}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -511,10 +543,10 @@ export default function DriversPage() {
                       <p className="text-xs text-muted-foreground">{vehicleIcons[driver.vehicleType]}</p>
                     </div>
                     <div className="space-y-1 text-sm text-muted-foreground">
-                      <p className="flex items-center gap-1.5">
+                      <a href={`tel:${driver.phone}`} className="flex items-center gap-1.5 hover:underline decoration-muted-foreground/50">
                         <Phone className="h-3 w-3" />
                         {driver.phone}
-                      </p>
+                      </a>
                       <p className="flex items-center gap-1.5">
                         <Mail className="h-3 w-3" />
                         {driver.email}
@@ -526,29 +558,42 @@ export default function DriversPage() {
                         {t("drivers.currentlyWith")}: {currentGuest.name}
                       </p>
                     )}
-                    <div className="flex gap-2 justify-end">
-
+                    <div className="flex gap-2 pt-3 border-t border-border">
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="h-9 w-9 p-0"
+                        variant="outline"
+                        className="flex-1"
                         onClick={() => {
                           setSelectedDriver(driver)
                           setIsEditDriverOpen(true)
                         }}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-4 w-4 mr-2" />
+                        {t("drivers.editDriver")}
                       </Button>
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="h-9 w-9 p-0 text-destructive"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedDriver(driver)
+                          setIsChangePasswordOpen(true)
+                        }}
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        {t("drivers.changePassword")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
                         onClick={() => {
                           setSelectedDriver(driver)
                           setIsDeleteDriverOpen(true)
                         }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {t("drivers.deleteDriver")}
                       </Button>
                     </div>
                   </CardContent>
@@ -679,9 +724,13 @@ export default function DriversPage() {
                 <Label htmlFor="driverPhone">{t("drivers.phoneLabel")}</Label>
                 <Input
                   id="driverPhone"
+                  type="tel"
                   placeholder={t("drivers.phonePlaceholder")}
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^\d+]/g, "")
+                    setFormData({ ...formData, phone: value })
+                  }}
                   required
                 />
               </div>
@@ -769,8 +818,14 @@ export default function DriversPage() {
                 <Label htmlFor="editDriverPhone">{t("drivers.phoneLabel")}</Label>
                 <Input
                   id="editDriverPhone"
+                  type="tel"
                   value={selectedDriver?.phone || ""}
-                  onChange={(e) => selectedDriver && setSelectedDriver({ ...selectedDriver, phone: e.target.value })}
+                  onChange={(e) => {
+                    if (selectedDriver) {
+                      const value = e.target.value.replace(/[^\d+]/g, "")
+                      setSelectedDriver({ ...selectedDriver, phone: value })
+                    }
+                  }}
                   required
                 />
               </div>

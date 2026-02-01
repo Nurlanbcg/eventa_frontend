@@ -13,7 +13,16 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { AuditLogsModal } from "@/components/audit-logs-modal"
-import { formatDistanceToNow } from "date-fns"
+import { SessionsModal } from "@/components/sessions-modal"
+import { formatDistanceToNow, Locale } from "date-fns"
+import { az, enUS, ru, tr } from "date-fns/locale"
+
+const dateLocales: Record<string, Locale> = {
+    az: az,
+    en: enUS,
+    ru: ru,
+    tr: tr,
+}
 
 interface SettingsModalProps {
     open: boolean
@@ -47,6 +56,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     const [loading, setLoading] = useState(false)
     const [activeTab, setActiveTab] = useState("general")
     const [auditLogsModalOpen, setAuditLogsModalOpen] = useState(false)
+    const [sessionsModalOpen, setSessionsModalOpen] = useState(false)
 
     const languages = [
         { code: "az", label: "Azərbaycan" },
@@ -67,7 +77,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         try {
             const [sessionsRes, logsRes] = await Promise.all([
                 api.settings.getSessions(),
-                api.settings.getAuditLogs(10)
+                api.settings.getAuditLogs(3)
             ])
 
             if (sessionsRes.success) {
@@ -88,9 +98,10 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             const date = new Date(dateString)
             const now = new Date()
             const diffMs = now.getTime() - date.getTime()
+            const locale = dateLocales[language] || enUS
 
             if (diffMs < 60000) return t("settings.lastActive") + ": Now"
-            return formatDistanceToNow(date, { addSuffix: true })
+            return formatDistanceToNow(date, { addSuffix: true, locale })
         } catch {
             return dateString
         }
@@ -99,7 +110,13 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     const formatLogDate = (dateString: string) => {
         try {
             const date = new Date(dateString)
-            return date.toLocaleString()
+            const day = String(date.getDate()).padStart(2, '0')
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const year = date.getFullYear()
+            const hours = String(date.getHours()).padStart(2, '0')
+            const minutes = String(date.getMinutes()).padStart(2, '0')
+            const seconds = String(date.getSeconds()).padStart(2, '0')
+            return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`
         } catch {
             return dateString
         }
@@ -201,15 +218,24 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                                 ) : (
                                     <>
                                         <div className="space-y-3">
-                                            <h3 className="text-sm font-medium text-muted-foreground">{t("settings.activeSessions")}</h3>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-sm font-medium text-muted-foreground">{t("settings.activeSessions")}</h3>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setSessionsModalOpen(true)}
+                                                >
+                                                    {t("settings.viewAll")}
+                                                </Button>
+                                            </div>
                                             <div className="rounded-md border">
                                                 {sessions.length === 0 ? (
                                                     <div className="p-4 text-center text-sm text-muted-foreground">
                                                         {t("settings.noActiveSessions")}
                                                     </div>
                                                 ) : (
-                                                    sessions.map((session, i) => (
-                                                        <div key={session.id} className={`flex items-start justify-between p-3 ${i !== sessions.length - 1 ? 'border-b' : ''}`}>
+                                                    sessions.slice(0, 3).map((session, i, arr) => (
+                                                        <div key={session.id} className={`flex items-start justify-between p-3 ${i !== arr.length - 1 ? 'border-b' : ''}`}>
                                                             <div className="space-y-1">
                                                                 <div className="flex items-center gap-2">
                                                                     <p className="text-sm font-medium">{session.device}</p>
@@ -249,7 +275,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                                                         {t("settings.noAuditLogs")}
                                                     </div>
                                                 ) : (
-                                                    logs.map((log) => (
+                                                    logs.slice(0, 3).map((log) => (
                                                         <div key={log.id} className="p-3 flex items-center justify-between text-sm">
                                                             <div>
                                                                 <p className="font-medium">{getActionLabel(log.action)}</p>
@@ -272,6 +298,11 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             <AuditLogsModal
                 open={auditLogsModalOpen}
                 onOpenChange={setAuditLogsModalOpen}
+            />
+
+            <SessionsModal
+                open={sessionsModalOpen}
+                onOpenChange={setSessionsModalOpen}
             />
         </>
     )

@@ -7,7 +7,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Loader2, Download, Calendar, Globe, Monitor } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { formatDistanceToNow } from "date-fns"
+import { formatDistanceToNow, Locale } from "date-fns"
+import { az, enUS, ru, tr } from "date-fns/locale"
+
+const dateLocales: Record<string, Locale> = {
+    az: az,
+    en: enUS,
+    ru: ru,
+    tr: tr,
+}
 
 interface AuditLogsModalProps {
     open: boolean
@@ -23,7 +31,7 @@ interface AuditLog {
 }
 
 export function AuditLogsModal({ open, onOpenChange }: AuditLogsModalProps) {
-    const { t } = useLanguage()
+    const { language, t } = useLanguage()
     const [logs, setLogs] = useState<AuditLog[]>([])
     const [loading, setLoading] = useState(false)
     const [exporting, setExporting] = useState(false)
@@ -71,7 +79,13 @@ export function AuditLogsModal({ open, onOpenChange }: AuditLogsModalProps) {
     const formatLogDate = (dateString: string) => {
         try {
             const date = new Date(dateString)
-            return date.toLocaleString()
+            const day = String(date.getDate()).padStart(2, '0')
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const year = date.getFullYear()
+            const hours = String(date.getHours()).padStart(2, '0')
+            const minutes = String(date.getMinutes()).padStart(2, '0')
+            const seconds = String(date.getSeconds()).padStart(2, '0')
+            return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`
         } catch {
             return dateString
         }
@@ -79,7 +93,8 @@ export function AuditLogsModal({ open, onOpenChange }: AuditLogsModalProps) {
 
     const getRelativeTime = (dateString: string) => {
         try {
-            return formatDistanceToNow(new Date(dateString), { addSuffix: true })
+            const locale = dateLocales[language] || enUS
+            return formatDistanceToNow(new Date(dateString), { addSuffix: true, locale })
         } catch {
             return ""
         }

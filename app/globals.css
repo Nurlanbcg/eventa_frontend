@@ -148,3 +148,13 @@
 .recharts-surface {
   outline: none !important;
 }
+
+/* Google Maps Autocomplete z-index and pointer interaction fix */
+.pac-container {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+.pac-item {
+  cursor: pointer;
+}

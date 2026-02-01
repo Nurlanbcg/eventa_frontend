@@ -1,8 +1,6 @@
 "use client"
 
-import React from "react"
-import { use } from "react" // Import the use hook
-import { useState } from "react"
+import React, { useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -26,17 +24,18 @@ export default function EditEventPage() {
   const params = useParams()
   const id = params.id as string
   const router = useRouter()
-  const event: Event | null = null // getEventById(id)
+  // Placeholder: replace with actual API fetch
+  const event = null as Event | null // getEventById(id)
   const { t } = useLanguage()
 
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: event?.name || "",
-    date: event?.date || "",
-    time: event?.time || "",
-    address: event?.address || "",
-    notes: event?.notes || "",
-    status: (event?.status || "planning") as EventStatus,
+    name: event?.name ?? "",
+    date: event?.date ?? "",
+    time: event?.time ?? "",
+    address: event?.address ?? "",
+    notes: event?.notes ?? "",
+    status: (event?.status ?? "planning") as EventStatus,
   })
 
   if (!event) {
