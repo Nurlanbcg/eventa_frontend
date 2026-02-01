@@ -171,10 +171,10 @@ export default function EventDetailPage() {
     result = [...result].sort((a, b) => {
       if (guestSortBy === "asc") return a.name.localeCompare(b.name)
       if (guestSortBy === "desc") return b.name.localeCompare(a.name)
-      // newest - sort by _id descending (MongoDB ObjectIDs contain timestamp, so newer = larger)
-      const aId = a._id || a.id || ""
-      const bId = b._id || b.id || ""
-      return bId.localeCompare(aId)
+      // newest - sort by creation date descending (most recent first)
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return dateB - dateA
     })
 
     return result
@@ -732,7 +732,7 @@ export default function EventDetailPage() {
 
               {/* Mobile Cards */}
               <div className="grid gap-3 md:hidden">
-                {guests.map((guest) => {
+                {filteredGuests.map((guest) => {
                   const driver = (typeof guest.assignedDriverId === 'object' && guest.assignedDriverId !== null)
                     ? guest.assignedDriverId as Driver
                     : null
@@ -863,8 +863,9 @@ export default function EventDetailPage() {
 
                 return (
                   <button
+                    type="button"
                     key={driver._id || driver.id}
-                    className="w-full p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+                    className="w-full p-4 rounded-lg border border-border hover:bg-muted/50 active:bg-muted transition-colors text-left touch-manipulation"
                     onClick={() => handleAssignDriver(driver)}
                   >
                     <div className="flex items-center justify-between">
@@ -980,7 +981,7 @@ export default function EventDetailPage() {
                     id="edit-date"
                     type="text"
                     placeholder={t("events.datePlaceholder")}
-                    pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}"
+                    pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/[0-9]{4}"
                     value={editFormData.date}
                     onChange={(e) => {
                       let value = e.target.value.replace(/[^\d/]/g, "")

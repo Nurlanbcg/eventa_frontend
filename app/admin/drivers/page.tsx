@@ -159,7 +159,7 @@ export default function DriversPage() {
         name: formData.name,
         phone: formData.phone,
         email: formData.email,
-        vehicleType: formData.vehicleType,
+        vehicleType: formData.vehicleType as "sedan" | "minivan" | "bus" | "suv",
         vehicleModel: formData.vehicleModel,
         licensePlate: formData.licensePlate,
         password: formData.password
@@ -257,7 +257,7 @@ export default function DriversPage() {
     setIsLoading(true)
     try {
       const response = await api.drivers.changePassword(selectedDriver._id || selectedDriver.id, {
-        password: passwordData.newPassword
+        newPassword: passwordData.newPassword
       })
 
       if (response.success) {
@@ -404,7 +404,10 @@ export default function DriversPage() {
                   const sortedDrivers = [...filteredDrivers].sort((a, b) => {
                     if (sortBy === "asc") return a.name.localeCompare(b.name)
                     if (sortBy === "desc") return b.name.localeCompare(a.name)
-                    return 0 // newest - maintain original order (backend returns newest first)
+                    // newest - sort by creation date descending (most recent first)
+                    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+                    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+                    return dateB - dateA
                   })
                   return sortedDrivers.map((driver) => {
                     const currentGuest = (typeof driver.currentTaskId === 'object' && driver.currentTaskId !== null)
@@ -510,96 +513,107 @@ export default function DriversPage() {
 
           {/* Mobile Cards */}
           <div className="grid gap-4 md:hidden">
-            {filteredDrivers.map((driver) => {
-              const currentGuest = (typeof driver.currentTaskId === 'object' && driver.currentTaskId !== null)
-                ? driver.currentTaskId as Guest
-                : null;
-              return (
-                <Card key={driver._id || driver.id} className="border-border">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
-                          <Car className="h-5 w-5 text-accent" />
+            {(() => {
+              // Apply sorting to filtered drivers
+              const sortedDrivers = [...filteredDrivers].sort((a, b) => {
+                if (sortBy === "asc") return a.name.localeCompare(b.name)
+                if (sortBy === "desc") return b.name.localeCompare(a.name)
+                // newest - sort by creation date descending (most recent first)
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+                return dateB - dateA
+              })
+              return sortedDrivers.map((driver) => {
+                const currentGuest = (typeof driver.currentTaskId === 'object' && driver.currentTaskId !== null)
+                  ? driver.currentTaskId as Guest
+                  : null;
+                return (
+                  <Card key={driver._id || driver.id} className="border-border">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
+                            <Car className="h-5 w-5 text-accent" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base">{driver.name}</CardTitle>
+                            <p className="text-xs text-muted-foreground">{driver.licensePlate}</p>
+                          </div>
                         </div>
-                        <div>
-                          <CardTitle className="text-base">{driver.name}</CardTitle>
-                          <p className="text-xs text-muted-foreground">{driver.licensePlate}</p>
+                        <div className="text-right">
+                          <StatusBadge status={driver.status} />
+                          {driver.status === 'offline' && driver.busyReason && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {driver.busyReason}
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <StatusBadge status={driver.status} />
-                        {driver.status === 'offline' && driver.busyReason && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {driver.busyReason}
-                          </p>
-                        )}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="text-sm">
+                        <p className="font-medium">{driver.vehicleModel}</p>
+                        <p className="text-xs text-muted-foreground">{vehicleIcons[driver.vehicleType]}</p>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="text-sm">
-                      <p className="font-medium">{driver.vehicleModel}</p>
-                      <p className="text-xs text-muted-foreground">{vehicleIcons[driver.vehicleType]}</p>
-                    </div>
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      <a href={`tel:${driver.phone}`} className="flex items-center gap-1.5 hover:underline decoration-muted-foreground/50">
-                        <Phone className="h-3 w-3" />
-                        {driver.phone}
-                      </a>
-                      <p className="flex items-center gap-1.5">
-                        <Mail className="h-3 w-3" />
-                        {driver.email}
-                      </p>
-                    </div>
-                    {currentGuest && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 pt-2 border-t border-border">
-                        <MapPin className="h-3 w-3" />
-                        {t("drivers.currentlyWith")}: {currentGuest.name}
-                      </p>
-                    )}
-                    <div className="flex gap-2 pt-3 border-t border-border">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => {
-                          setSelectedDriver(driver)
-                          setIsEditDriverOpen(true)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4 mr-2" />
-                        {t("drivers.editDriver")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => {
-                          setSelectedDriver(driver)
-                          setIsChangePasswordOpen(true)
-                        }}
-                      >
-                        <Shield className="h-4 w-4 mr-2" />
-                        {t("drivers.changePassword")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        onClick={() => {
-                          setSelectedDriver(driver)
-                          setIsDeleteDriverOpen(true)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        {t("drivers.deleteDriver")}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <a href={`tel:${driver.phone}`} className="flex items-center gap-1.5 hover:underline decoration-muted-foreground/50">
+                          <Phone className="h-3 w-3" />
+                          {driver.phone}
+                        </a>
+                        <p className="flex items-center gap-1.5">
+                          <Mail className="h-3 w-3" />
+                          {driver.email}
+                        </p>
+                      </div>
+                      {currentGuest && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 pt-2 border-t border-border">
+                          <MapPin className="h-3 w-3" />
+                          {t("drivers.currentlyWith")}: {currentGuest.name}
+                        </p>
+                      )}
+                      <div className="flex gap-2 pt-3 border-t border-border">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedDriver(driver)
+                            setIsEditDriverOpen(true)
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          {t("drivers.editDriver")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedDriver(driver)
+                            setIsChangePasswordOpen(true)
+                          }}
+                        >
+                          <Shield className="h-4 w-4 mr-2" />
+                          {t("drivers.changePassword")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => {
+                            setSelectedDriver(driver)
+                            setIsDeleteDriverOpen(true)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {t("drivers.deleteDriver")}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            })()}
           </div>
 
           {filteredDrivers.length === 0 && (

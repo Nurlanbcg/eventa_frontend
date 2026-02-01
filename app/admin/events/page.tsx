@@ -289,7 +289,10 @@ export default function EventsPage() {
                     const sortedEvents = [...filteredEvents].sort((a, b) => {
                       if (sortBy === "asc") return a.name.localeCompare(b.name)
                       if (sortBy === "desc") return b.name.localeCompare(a.name)
-                      return 0 // newest - maintain original order
+                      // newest - sort by creation date descending (most recent first)
+                      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+                      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+                      return dateB - dateA
                     })
                     return sortedEvents.map((event) => (
                       <TableRow
@@ -358,53 +361,63 @@ export default function EventsPage() {
 
             {/* Mobile Cards */}
             <div className="grid gap-4 md:hidden">
-              {filteredEvents.map((event) => (
-                <Card
-                  key={event._id || event.id}
-                  className="border-border cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => router.push(`/admin/events/${event._id || event.id}`)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-base">
-                        {event.name}
-                      </CardTitle>
-                      <StatusBadge status={event.status} />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>{event.date}</span>
-                      <Clock className="h-3.5 w-3.5 ml-2" />
-                      <span>{event.time}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{event.address}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Users className="h-3.5 w-3.5" />
-                      <span>{event.guestCount} {t("dashboard.guests")}</span>
-                    </div>
-                    <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={() => openEditModal(event)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" />
-                        {t("common.edit")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        onClick={() => openDeleteEventModal(event)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 mr-1" />
-                        {t("common.delete")}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {(() => {
+                const sortedEvents = [...filteredEvents].sort((a, b) => {
+                  if (sortBy === "asc") return a.name.localeCompare(b.name)
+                  if (sortBy === "desc") return b.name.localeCompare(a.name)
+                  // newest - sort by creation date descending (most recent first)
+                  const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+                  const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+                  return dateB - dateA
+                })
+                return sortedEvents.map((event) => (
+                  <Card
+                    key={event._id || event.id}
+                    className="border-border cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => router.push(`/admin/events/${event._id || event.id}`)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-base">
+                          {event.name}
+                        </CardTitle>
+                        <StatusBadge status={event.status} />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{event.date}</span>
+                        <Clock className="h-3.5 w-3.5 ml-2" />
+                        <span>{event.time}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{event.address}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>{event.guestCount} {t("dashboard.guests")}</span>
+                      </div>
+                      <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={() => openEditModal(event)}>
+                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          {t("common.edit")}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => openDeleteEventModal(event)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          {t("common.delete")}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              })()}
             </div>
 
             {filteredEvents.length === 0 && (
@@ -445,7 +458,7 @@ export default function EventsPage() {
                       id="date"
                       type="text"
                       placeholder={t("events.datePlaceholder")}
-                      pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}"
+                      pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/[0-9]{4}"
                       value={formData.date}
                       onChange={(e) => {
                         let value = e.target.value.replace(/[^\d/]/g, "")
@@ -568,7 +581,7 @@ export default function EventsPage() {
                       id="edit-date"
                       type="text"
                       placeholder={t("events.datePlaceholder")}
-                      pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}"
+                      pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/[0-9]{4}"
                       value={editFormData.date}
                       onChange={(e) => {
                         let value = e.target.value.replace(/[^\d/]/g, "")

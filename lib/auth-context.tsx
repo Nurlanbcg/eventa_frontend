@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation"
 import type { User, UserRole } from "./types"
 import { api } from "./api"
 
+// Token expiration time in milliseconds (7 days)
+const TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000
+
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string, role?: UserRole) => Promise<boolean>
@@ -20,11 +23,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
+  // Check if token has expired
+  const isTokenExpired = useCallback(() => {
+    const expiryTime = localStorage.getItem("tokenExpiry")
+    if (!expiryTime) return true
+    return Date.now() > parseInt(expiryTime, 10)
+  }, [])
+
   // Load user from token on mount
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("token")
-      if (token) {
+
+      // Check if token exists and hasn't expired
+      if (token && !isTokenExpired()) {
         try {
           const response = await api.auth.me()
           if (response.success) {
@@ -32,25 +44,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             // Token invalid
             localStorage.removeItem("token")
+            localStorage.removeItem("tokenExpiry")
             setUser(null)
           }
         } catch (error) {
           console.error("Auth check failed:", error)
           localStorage.removeItem("token")
+          localStorage.removeItem("tokenExpiry")
           setUser(null)
         }
+      } else if (token) {
+        // Token has expired, clear it
+        console.log("Session expired after 24 hours")
+        localStorage.removeItem("token")
+        localStorage.removeItem("tokenExpiry")
+        setUser(null)
       }
       setIsLoading(false)
     }
 
     checkAuth()
-  }, [])
+  }, [isTokenExpired])
 
   const login = useCallback(async (email: string, password: string, role?: UserRole): Promise<boolean> => {
     try {
       const response = await api.auth.login({ email, password, role })
       if (response.success) {
         localStorage.setItem("token", response.data.token)
+        // Store token expiration time (current time + 24 hours)
+        localStorage.setItem("tokenExpiry", String(Date.now() + TOKEN_EXPIRY_MS))
         setUser(response.data.user)
         return true
       }
@@ -64,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setUser(null)
     localStorage.removeItem("token")
+    localStorage.removeItem("tokenExpiry")
     router.push("/")
   }, [router])
 

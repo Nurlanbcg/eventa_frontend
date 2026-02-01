@@ -26,6 +26,7 @@ export interface PaginatedResponse<T> {
 export interface LoginCredentials {
   email: string
   password: string
+  role?: UserRole
 }
 
 export interface RegisterData {
@@ -36,8 +37,10 @@ export interface RegisterData {
 
 export interface AuthResponse {
   success: boolean
-  token: string
-  user: User
+  data: {
+    token: string
+    user: User
+  }
 }
 
 export interface SetupData {
@@ -75,6 +78,7 @@ export interface Event {
   notes?: string
   status: EventStatus
   guestCount: number
+  createdAt?: string
 }
 
 export interface Guest {
